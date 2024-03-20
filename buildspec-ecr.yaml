@@ -4,13 +4,13 @@ phases:
   pre_build:
     commands:
       - echo "Installing dependencies..."
-      - pip install -r requirements.txt
+      - pip install --upgrade awscli
       - echo "Logging in to Amazon ECR..."
       - aws --version
       - $(aws ecr get-login --region $AWS_DEFAULT_REGION --no-include-email)
-      - REPOSITORY_URI=807744275972.dkr.ecr.ap-south-1.amazonaws.com/cicd-pipeline-test
+      - REPOSITORY_URI=<aws-IAM-ac-id>.dkr.ecr.ap-south-1.amazonaws.com/cicd-pipeline-test
       - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
-      - IMAGE_TAG=build-$(echo $CODEBUILD_BUILD_ID | awk -F":" '{print $2}')
+      - IMAGE_TAG=latest
 
   build:
     commands:
@@ -25,10 +25,6 @@ phases:
       - echo "Pushing the Docker images..."
       - docker push $REPOSITORY_URI:latest
       - docker push $REPOSITORY_URI:$IMAGE_TAG
-      - echo "Writing image definitions file..."
-      - printf '[{"name":"python-app","imageUri":"%s"}]' $REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json
-      - cat imagedefinitions.json
-
-artifacts:
-  files:
-    - imagedefinitions.json
+      - echo "Updating Lambda Function..."
+      - aws lambda update-function-code --function-name codebuildtest-mahesh --image-uri <aws-IAM-ac-id>.dkr.ecr.ap-south-1.amazonaws.com/cicd-pipeline-test:latest
+      - echo "DONE!!"
